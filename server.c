@@ -23,6 +23,11 @@ int numRequests;
 void *Operate(void* clientFileDescriptor);
 
 int main(int argc, char* argv[]) {
+
+	if(argc != 2){
+		perror("incorrect number of args: %s <size of array>", argv[0]);
+	}
+
 	struct sockaddr_in sock_var;
 	int serverFileDescriptor=socket(AF_INET,SOCK_STREAM,0);
 	int clientFileDescriptor;
@@ -30,7 +35,7 @@ int main(int argc, char* argv[]) {
 	pthread_t t[strtol(argv[2],NULL,10)];
 
 	sock_var.sin_addr.s_addr=inet_addr("127.0.0.1");
-	sock_var.sin_port=3000;//strtol(argv[1],NULL,10);
+	sock_var.sin_port=3000;   //strtol(argv[1],NULL,10);
 	sock_var.sin_family=AF_INET;
 
 	setsockopt(serverFileDescriptor,SOL_SOCKET, SO_REUSEADDR,&i,sizeof(i) );
@@ -41,7 +46,7 @@ int main(int argc, char* argv[]) {
 		listen(serverFileDescriptor,2000); 
 
 		numRequests = 0;
-		while(numRequests < 1000) {
+		while(numRequests < argv[1]) {
 			if((clientFileDescriptor=accept(serverFileDescriptor,NULL,NULL)) != -1){
 				printf("nConnected to client %dn",clientFileDescriptor);
 				pthread_create(&t,NULL,Operate,(void *)clientFileDescriptor);

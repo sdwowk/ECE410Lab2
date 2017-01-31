@@ -20,7 +20,7 @@ int main(int argc, char* argv[]) {
 	pthread_t t[strtol(argv[2],NULL,10)];
 
 
-	if(argc != 3){
+	if(argc != 2){
 		perror("incorrect number of args");
 	}
 
