@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
 
 	if (argc != 3) {
 		printf("Incorrect number or args: %s <port#> <#_of_strings>\n", argv[0]);
-		exit(0);
+		exit(1);
 	}
 
 	num_str = atoi(argv[2]);
