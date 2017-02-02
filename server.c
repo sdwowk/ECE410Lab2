@@ -8,80 +8,91 @@
 #include <pthread.h>
 #include <string.h>
 
-#define NUM_STR 1024
 #define STR_LEN 1000
+#define thread_count 1000
+#define R 0
+#define W 1
 
-/* Global Variables */
-char theArray[NUM_STR][STR_LEN];
-int* seed;
+typedef struct {
+	int ID; // arrayID
+	int action; // R/W
+} array_param;
+
 pthread_mutex_t mutex;
-char buf[STR_LEN];
-char* clientGarbage;
-int numRequests;
+int clientFileDescriptor;
+int num_str;
 
 /* Prototyping */
-void *Operate(void* clientFileDescriptor);
+void *client_operation(void *args);
 
 int main(int argc, char* argv[]) {
 
-	if(argc != 2){
-		perror("incorrect number of args: %s <size of array>", argv[0]);
+	if (argc != 3) {
+		printf("Incorrect number or args: %s <port#> <#_of_strings>\n", argv[0]);
+		exit(0);
+	}
+
+	/* Initiliazing theArray */
+	int num_str = atoi(argv[2]);
+	char theArray[num_str][STR_LEN];
+
+	/* Fill in the initial values for theArray */
+	int i;
+	for (i = 0; i < num_str; i ++) {
+		sprintf(theArray[i], "String %d: the initial value", i);
 	}
 
 	struct sockaddr_in sock_var;
 	int serverFileDescriptor=socket(AF_INET,SOCK_STREAM,0);
 	int clientFileDescriptor;
-	int i = 0;
-	pthread_t t[strtol(argv[2],NULL,10)];
+
+	pthread_t *thread_handles;
+	thread_handles =  malloc(thread_count*sizeof(pthread_t));
 
 	sock_var.sin_addr.s_addr=inet_addr("127.0.0.1");
-	sock_var.sin_port=3000;   //strtol(argv[1],NULL,10);
+	sock_var.sin_port = strtol(argv[1],NULL,10);;
 	sock_var.sin_family=AF_INET;
-
-	setsockopt(serverFileDescriptor,SOL_SOCKET, SO_REUSEADDR,&i,sizeof(i) );
-
+	
 	if(bind(serverFileDescriptor,(struct sockaddr*)&sock_var,sizeof(sock_var))>=0)
 	{
-		printf("nsocket has been created");
 		listen(serverFileDescriptor,2000); 
-
-		numRequests = 0;
-		while(numRequests < argv[1]) {
-			if((clientFileDescriptor=accept(serverFileDescriptor,NULL,NULL)) != -1){
-				printf("nConnected to client %dn",clientFileDescriptor);
-				pthread_create(&t,NULL,Operate,(void *)clientFileDescriptor);
+		while(1)        //loop infinity
+		{
+			for(i = 0; i < 1000 ; i++)      //can support 1000 clients at a time
+			{
+				clientFileDescriptor=accept(serverFileDescriptor,NULL,NULL);
+				printf("nConnected to client %d\n",clientFileDescriptor);
+				pthread_create(&thread_handles[i], NULL, client_operation, (void *)theArray);
 			}
 		}
 		close(serverFileDescriptor);
 	}
 	else{
-		printf("\nsocket creation failed\n");
+		printf("nsocket creation failed");
 	}
+
+	free(thread_handles);
 	return 0;
 }
 
-void *Operate(void* clientFileDescriptor) {
-	long my_rank = (long) clientFileDescriptor;
-	
-	// Wait for client
-	while(read(clientFileDescriptor, clientGarbage, STR_LEN) != 0) {}
+void *client_operation(void *args) {
 
-	// Find a random position in theArray for read or write
-	int pos = rand_r(&seed[my_rank]) % NUM_STR;
-	int randNum = rand_r(&seed[my_rank]) % 100;	// write with 5% probability
-	
-	pthread_mutex_lock(&mutex); 
-	
-	if (randNum >= 95) {// 5% are write operations, others are reads
-		snprintf(buf, sizeof(buf), "%s%d%s", "String ", pos, " has been modified by a write request");
-		strcpy(theArray[pos], buf);
+	char theArray[num_str][STR_LEN];
+	strncpy(theArray, args, num_str);
+
+	char str_ser;
+
+	array_param id_rw;
+
+	read(clientFileDescriptor, &id_rw, sizeof(id_rw));
+
+	if(id_rw.action == W) {
+		sprintf(str_ser, "String %d has been modified by a write request\n", id_rw.ID);
+		sprintf(theArray[id_rw.ID], "String %d has been modified by a write request\n", id_rw.ID);
+	} else {
+		str_ser = theArray[id_rw.ID];
 	}
-
-	// return the value read or written
-	write(clientFileDescriptor, theArray[pos], STR_LEN); 
-	numRequests ++;
-	
-	pthread_mutex_unlock(&mutex);
-		
-	return NULL;
+	printf("\nsending to client:%s\n", str_ser);
+	write(clientFileDescriptor, str_ser, num_str);
+	close(clientFileDescriptor);
 }
