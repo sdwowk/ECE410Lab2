@@ -103,11 +103,11 @@ void *rw_array(void* rank){
 
 	if (randNum >= 95) { // 5% are write operations, others are reads
 		id_rw.action = W;
-		write(clientFileDescriptor, &id_rw, sizeof(id_rw));
+		write(clientFileDescriptor, id_rw.ID, sizeof(int));
 		read(clientFileDescriptor, str_ser, STR_LEN);
 	} else {
 		id_rw.action = R;
-		write(clientFileDescriptor, &id_rw, sizeof(id_rw));
+		write(clientFileDescriptor, id_rw.ID, sizeof(int));
 		read(clientFileDescriptor, str_ser, STR_LEN);
 	}
 	printf("%s\n", str_ser);

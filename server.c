@@ -19,7 +19,7 @@ typedef struct {
 } array_param;
 
 pthread_mutex_t mutex;
-int clientFileDescriptor;
+char** theArray;
 int num_str;
 
 /* Prototyping */
@@ -34,14 +34,18 @@ int main(int argc, char* argv[]) {
 
 	/* Initiliazing theArray */
 	int num_str = atoi(argv[2]);
-	char theArray[num_str][STR_LEN];
-	pthread_mutex_init(&mutex, NULL);
+	theArray = malloc(num_str*sizeof(char));
+	int i;
+	for(i = 0; i < num_str; i ++) {
+		theArray[i] = malloc(STR_LEN*sizeof(char));
+	}
 
 	/* Fill in the initial values for theArray */
-	int i;
 	for (i = 0; i < num_str; i ++) {
 		sprintf(theArray[i], "String %d: the initial value", i);
 	}
+
+	pthread_mutex_init(&mutex, NULL);
 
 	struct sockaddr_in sock_var;
 	int serverFileDescriptor=socket(AF_INET,SOCK_STREAM,0);
@@ -63,7 +67,7 @@ int main(int argc, char* argv[]) {
 			
 				clientFileDescriptor=accept(serverFileDescriptor,NULL,NULL);
 				printf("nConnected to client %d\n",clientFileDescriptor);
-				pthread_create(&thread_handles[i], NULL, client_operation, (void *)theArray);
+				pthread_create(&thread_handles[i], NULL, client_operation, (void *)clientFileDescriptor);
 			}
 		}
 
@@ -74,14 +78,18 @@ int main(int argc, char* argv[]) {
 	}
 
 	free(thread_handles);
+	for(i = 0; i < num_str; i ++) {
+		free(theArray[i]);
+	}
+	free(theArray);
+
 	pthread_mutex_destroy(&mutex);
 	return 0;
 }
 
 void *client_operation(void *args) {
 
-	char theArray[num_str][STR_LEN];
-	strncpy(theArray, args, num_str);
+	int clientFileDescriptor = (int) args;
 
 	char str_ser[STR_LEN];
 
@@ -89,7 +97,10 @@ void *client_operation(void *args) {
 
 	pthread_mutex_lock(&mutex); 
 
+	//doesnt get past this
 	read(clientFileDescriptor, &id_rw, sizeof(id_rw));
+
+	printf("Post read\n");
 
 	if(id_rw.action == W) {
 		sprintf(str_ser, "String %d has been modified by a write request\n", id_rw.ID);
@@ -97,9 +108,9 @@ void *client_operation(void *args) {
 	} else {
 		*str_ser = *theArray[id_rw.ID];
 	}
+
 	printf("\nsending to client:%s\n", str_ser);
 	write(clientFileDescriptor, str_ser, num_str);
 	close(clientFileDescriptor);
 	pthread_mutex_unlock(&mutex); 
-
 }
