@@ -37,7 +37,7 @@ int main(int argc, char* argv[]) {
 	
 	//char theArray[num_str][STR_LEN];
 	char** theArray = malloc(num_str * sizeof(char *));
-	pthread_mutex_t(&MUTEX, NULL);	
+	pthread_mutex_init(&mutex, NULL);	
 
 	int i;
 	/* Fill in the initial values for theArray */
@@ -46,7 +46,7 @@ int main(int argc, char* argv[]) {
 		theArray[i] = malloc(STR_LEN * sizeof(char));
 
 		sprintf(theArray[i], "String %d: the initial value\n", i);
-		fprintf(stderr, "%s", theArray[i]); 
+		 
 	}
 
 	struct sockaddr_in sock_var;
@@ -89,7 +89,7 @@ void *client_operation(void *args) {
 	//char theArray[num_str][STR_LEN];
 	//strncpy(theArray, args, num_str);
 
-	char str_ser[STR_LEN];
+	char* str_ser = malloc(STR_LEN * sizeof(char));
 
 	array_param id_rw;
 
@@ -101,11 +101,12 @@ void *client_operation(void *args) {
 		sprintf(str_ser, "String %d has been modified by a write request\n", id_rw.ID);
 		sprintf(((char **)args)[id_rw.ID], "String %d has been modified by a write request\n", id_rw.ID);
 	} else {
-		*str_ser = ((char **)args)[id_rw.ID];
+		str_ser = ((char **)args)[id_rw.ID];
 	}
 	printf("\nsending to client:%s\n", str_ser);
 	write(clientFileDescriptor, str_ser, num_str);
 	close(clientFileDescriptor);
+	free(str_ser);
 	pthread_mutex_unlock(&mutex); 
 
 }
