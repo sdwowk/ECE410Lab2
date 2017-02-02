@@ -35,6 +35,7 @@ int main(int argc, char* argv[]) {
 	/* Initiliazing theArray */
 	int num_str = atoi(argv[2]);
 	char theArray[num_str][STR_LEN];
+	pthread_mutex_init(&mutex, NULL);
 
 	/* Fill in the initial values for theArray */
 	int i;
@@ -73,6 +74,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	free(thread_handles);
+	pthread_mutex_destroy(&mutex);
 	return 0;
 }
 
@@ -85,6 +87,8 @@ void *client_operation(void *args) {
 
 	array_param id_rw;
 
+	pthread_mutex_lock(&mutex); 
+
 	read(clientFileDescriptor, &id_rw, sizeof(id_rw));
 
 	if(id_rw.action == W) {
@@ -96,4 +100,6 @@ void *client_operation(void *args) {
 	printf("\nsending to client:%s\n", str_ser);
 	write(clientFileDescriptor, str_ser, num_str);
 	close(clientFileDescriptor);
+	pthread_mutex_unlock(&mutex); 
+
 }
