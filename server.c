@@ -37,9 +37,9 @@ int main(int argc, char* argv[]) {
 	
 	//char theArray[num_str][STR_LEN];
 	char** theArray = malloc(num_str * sizeof(char *));
+	pthread_mutex_t(&MUTEX, NULL);	
+
 	int i;
-
-
 	/* Fill in the initial values for theArray */
 	for (i = 0; i < num_str; i ++) {
 		//theArray[i] = malloc(STR_LEN * sizeof(char));
