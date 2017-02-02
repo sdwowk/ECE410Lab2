@@ -92,7 +92,7 @@ int main(int argc, char* argv[]) {
 void *rw_array(void* rank){
 
 	long my_rank = (long) rank;
-	char str_ser[num_str];
+	char str_ser[STR_LEN];
 
 	// Find a random position in theArray for read or write
 	int pos = rand_r(&seed[my_rank]) % num_str;

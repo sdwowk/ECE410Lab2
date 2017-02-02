@@ -58,13 +58,14 @@ int main(int argc, char* argv[]) {
 		listen(serverFileDescriptor,2000); 
 		while(1)        //loop infinity
 		{
-			for(i = 0; i < 1000 ; i++)      //can support 1000 clients at a time
-			{
+			for(i = 0; i < 1000 ; i++) {    //can support 1000 clients at a time
+			
 				clientFileDescriptor=accept(serverFileDescriptor,NULL,NULL);
 				printf("nConnected to client %d\n",clientFileDescriptor);
 				pthread_create(&thread_handles[i], NULL, client_operation, (void *)theArray);
 			}
 		}
+
 		close(serverFileDescriptor);
 	}
 	else{
@@ -80,7 +81,7 @@ void *client_operation(void *args) {
 	char theArray[num_str][STR_LEN];
 	strncpy(theArray, args, num_str);
 
-	char str_ser;
+	char str_ser[STR_LEN];
 
 	array_param id_rw;
 
@@ -90,7 +91,7 @@ void *client_operation(void *args) {
 		sprintf(str_ser, "String %d has been modified by a write request\n", id_rw.ID);
 		sprintf(theArray[id_rw.ID], "String %d has been modified by a write request\n", id_rw.ID);
 	} else {
-		str_ser = theArray[id_rw.ID];
+		*str_ser = *theArray[id_rw.ID];
 	}
 	printf("\nsending to client:%s\n", str_ser);
 	write(clientFileDescriptor, str_ser, num_str);
