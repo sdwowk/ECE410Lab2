@@ -12,7 +12,8 @@
 
 unsigned int *seed;
 int num_str;
-int clientFileDescriptor;
+pthread_mutex_t mutex;
+//int clientFileDescriptor;
 
 /* Prototyping */
 void *rw_array(void* rank);
@@ -35,11 +36,11 @@ int main(int argc, char* argv[]) {
 
 	pthread_t* thread_handles;
 	thread_handles =  malloc(thread_count*sizeof(pthread_t));
+	pthread_mutex_init(&mutex, NULL);
+
 
 	struct sockaddr_in sock_var;
 	int clientFileDescriptor=socket(AF_INET,SOCK_STREAM,0);
-	printf("cFD: %d", clientFileDescriptor);
-
 
 	sock_var.sin_addr.s_addr=inet_addr("127.0.0.1");
 	sock_var.sin_port = strtol(argv[1],NULL,10);
@@ -55,7 +56,7 @@ int main(int argc, char* argv[]) {
 		//create threads
 		int thread;
 		for(thread = 0; thread < thread_count; thread++){
-			int rc = pthread_create(&thread_handles[thread], NULL, rw_array, (void*)thread);
+			int rc = pthread_create(&thread_handles[thread], NULL, rw_array, (void*)clientFileDescriptor);
 
 			if(rc != 0){
 				perror("Error creating threads");
@@ -79,6 +80,8 @@ int main(int argc, char* argv[]) {
 		printf("socket creation failed");
 	}
 
+	pthread_mutex_destroy(&mutex, NULL);
+
 	free(thread_handles);
 	free(seed);
 	return 0;
@@ -87,16 +90,16 @@ int main(int argc, char* argv[]) {
 void *rw_array(void* rank){
 
 	long my_rank = (long) rank;
-	//int clientFileDescriptor = (int) rank;
+	int clientFileDescriptor = (int) rank;
 	char str_ser[STR_LEN];
 
 	// Find a random position in theArray for read or write
 	int pos = rand_r(&seed[my_rank]) % num_str;
 	int randNum = rand_r(&seed[my_rank]) % 100;	// write with 5% probability
-	printf("FD: %d\n", clientFileDescriptor);
-	printf("Rank: %ld\n", my_rank);
-	
+
 	char str_cli[STR_LEN];
+
+	pthread_mutex_lock(&mutex, NULL);
 
 	if (randNum >= 95) { // 5% are write operations, others are reads
 		snprintf(str_cli, STR_LEN, "%d%s%d\n", pos, " ", 1);
@@ -107,6 +110,7 @@ void *rw_array(void* rank){
 		write(clientFileDescriptor, str_cli, sizeof(str_cli));
 		read(clientFileDescriptor, str_ser, STR_LEN);
 	}
+	pthread_mutex_unlock(&mutex, NULL);
 
 	printf("%s\n", str_ser);
 

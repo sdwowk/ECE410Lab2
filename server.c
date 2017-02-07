@@ -12,7 +12,7 @@
 #define thread_count 1000
 
 pthread_mutex_t mutex;
-char ** theArray;
+char** theArray;
 int num_str;
 
 /* Prototyping */
@@ -29,9 +29,6 @@ int main(int argc, char* argv[]) {
 	int num_str = atoi(argv[2]);
 	theArray = malloc(num_str*sizeof(char));
 	int i;
-	for(i = 0; i < num_str; i ++) {
-		theArray[i] = malloc(STR_LEN*sizeof(char *));
-	}
 
 	char** theArray = malloc(num_str * sizeof(char *));
 	pthread_mutex_init(&mutex, NULL);	
@@ -42,6 +39,9 @@ int main(int argc, char* argv[]) {
 		sprintf(theArray[i], "String %d: the initial value\n", i);
 		 
 	}
+
+	printf("%s\n", theArray[325]);
+
 
 	struct sockaddr_in sock_var;
 	int serverFileDescriptor=socket(AF_INET,SOCK_STREAM,0);
@@ -109,11 +109,17 @@ void *client_operation(void *args) {
 		sprintf(str_ser, "String %d has been modified by a write request", pos);
 		sprintf(theArray[pos], "String %d has been modified by a write request", pos);
 	} else {
+	printf("%d\n", pos);
+
 		str_ser = theArray[pos];
-	}
+	printf("%s\n", theArray[pos]);
+
+	}	
 
 	printf("\nsending to client:%s\n", str_ser);
 	write(clientFileDescriptor, str_ser, STR_LEN);
+
+	pthread_mutex_unlock(&mutex);
+
 	close(clientFileDescriptor);
-	pthread_mutex_unlock(&mutex); 
 }
