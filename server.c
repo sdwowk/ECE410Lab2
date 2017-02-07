@@ -10,16 +10,9 @@
 
 #define STR_LEN 1000
 #define thread_count 1000
-#define R 0
-#define W 1
-
-typedef struct {
-	int ID; // arrayID
-	int action; // R/W
-} array_param;
 
 pthread_mutex_t mutex;
-char** theArray;
+char ** theArray;
 int num_str;
 
 /* Prototyping */
@@ -37,25 +30,18 @@ int main(int argc, char* argv[]) {
 	theArray = malloc(num_str*sizeof(char));
 	int i;
 	for(i = 0; i < num_str; i ++) {
-		theArray[i] = malloc(STR_LEN*sizeof(char));
+		theArray[i] = malloc(STR_LEN*sizeof(char *));
 	}
 
-	//char theArray[num_str][STR_LEN];
 	char** theArray = malloc(num_str * sizeof(char *));
 	pthread_mutex_init(&mutex, NULL);	
 
-	int i;
-
 	/* Fill in the initial values for theArray */
 	for (i = 0; i < num_str; i ++) {
-		//theArray[i] = malloc(STR_LEN * sizeof(char));
-		theArray[i] = malloc(STR_LEN * sizeof(char));
-
+		theArray[i] = malloc(STR_LEN * sizeof(char *));
 		sprintf(theArray[i], "String %d: the initial value\n", i);
 		 
 	}
-
-	pthread_mutex_init(&mutex, NULL);
 
 	struct sockaddr_in sock_var;
 	int serverFileDescriptor=socket(AF_INET,SOCK_STREAM,0);
@@ -63,6 +49,7 @@ int main(int argc, char* argv[]) {
 
 	pthread_t *thread_handles;
 	thread_handles =  malloc(thread_count*sizeof(pthread_t));
+	pthread_mutex_init(&mutex, NULL);
 
 	sock_var.sin_addr.s_addr=inet_addr("127.0.0.1");
 	sock_var.sin_port = strtol(argv[1],NULL,10);;
@@ -87,45 +74,46 @@ int main(int argc, char* argv[]) {
 		printf("nsocket creation failed");
 	}
 
-	free(thread_handles);
-	for(i = 0; i < num_str; i ++) {
-		free(theArray[i]);
-	}
-	free(theArray);
-
 	pthread_mutex_destroy(&mutex);
+	free(thread_handles);
 	return 0;
 }
 
 void *client_operation(void *args) {
 
 	int clientFileDescriptor = (int) args;
-	//char theArray[num_str][STR_LEN];
-	//strncpy(theArray, args, num_str);
 
+	char temp[STR_LEN];
 	char* str_ser = malloc(STR_LEN * sizeof(char));
 
-	array_param id_rw;
+	char* str_cli[STR_LEN];
+	perror("Pre read");
+	read(clientFileDescriptor, str_cli, sizeof(str_cli));
+	perror("Post read");
+
+	printf("%s\n", str_cli);
+
+	char* token = malloc(STR_LEN * sizeof(char));
+	token = strtok_r(str_cli, " ", temp);
+
+	int pos = atoi(str_cli);
+
+	int r_w = atoi(strtok_r(NULL, " ", temp));
+
+	printf("%d\n", pos);
+	printf("%d\n", r_w);
 
 	pthread_mutex_lock(&mutex); 
 
-	//doesnt get past this
-	read(clientFileDescriptor, &id_rw, sizeof(id_rw));
-
-	printf("Post read\n");
-
-	if(id_rw.action == W) {
-		sprintf(str_ser, "String %d has been modified by a write request\n", id_rw.ID);
-		sprintf(((char **)args)[id_rw.ID], "String %d has been modified by a write request\n", id_rw.ID);
+	if(r_w == 1) {
+		sprintf(str_ser, "String %d has been modified by a write request", pos);
+		sprintf(theArray[pos], "String %d has been modified by a write request", pos);
 	} else {
-		str_ser = ((char **)args)[id_rw.ID];
+		str_ser = theArray[pos];
 	}
 
 	printf("\nsending to client:%s\n", str_ser);
-	write(clientFileDescriptor, str_ser, num_str);
+	write(clientFileDescriptor, str_ser, STR_LEN);
 	close(clientFileDescriptor);
-	free(str_ser);
 	pthread_mutex_unlock(&mutex); 
 }
-
-

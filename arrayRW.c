@@ -47,7 +47,7 @@ int main(int argc, char* argv[]) {
 	/* Fill in the initial values for theArray */
 	for (i = 0; i < NUM_STR; i ++)
 	{
-		sprintf(theArray[i], "String %d: the initial value", i);
+		sprintf(theArray[i], "theArray[%d]: initial value", i);
 		printf("%s\n\n", theArray[i]);
 	}
    
@@ -76,11 +76,11 @@ void *Operate(void* rank) {
 	
 	// Find a random position in theArray for read or write
 	int pos = rand_r(&seed[my_rank]) % NUM_STR;
-	int randNum = rand_r(&seed[my_rank]) % 100;	// write with 5% probability
+	int randNum = rand_r(&seed[my_rank]) % 10;	// write with 10% probability
 	
 	pthread_mutex_lock(&mutex); 
-	if (randNum >= 95) // 5% are write operations, others are reads
-		sprintf(theArray[pos], "String %d modified by a write request", pos, my_rank);
+	if (randNum >= 9) // 10% are write operations, others are reads
+		sprintf(theArray[pos], "theArray[%d] modified by thread %d", pos, my_rank);
 	printf("Thread %d: randNum = %d\n", my_rank, randNum);
 	printf("%s\n\n", theArray[pos]); // return the value read or written
 	pthread_mutex_unlock(&mutex);
