@@ -10,6 +10,7 @@
 
 #define STR_LEN 1000
 #define thread_count 1000
+#define offset 126
 
 pthread_mutex_t mutex;
 char** theArray;
@@ -52,24 +53,24 @@ int main(int argc, char* argv[]) {
 	sock_var.sin_port = strtol(argv[1],NULL,10);;
 	sock_var.sin_family=AF_INET;
 	
-	if(bind(serverFileDescriptor,(struct sockaddr*)&sock_var,sizeof(sock_var))>=0)
-	{
-		listen(serverFileDescriptor,2000); 
-		while(1)        //loop infinity
-		{
-			for(i = 0; i < 1000 ; i++) {    //can support 1000 clients at a time
-				clientFileDescriptor=accept(serverFileDescriptor,NULL,NULL);
-				printf("Connected to client %d\n",clientFileDescriptor);
-				pthread_create(&thread_handles[i], NULL, client_operation, (void *)clientFileDescriptor);			
-			}
+	if(bind(serverFileDescriptor,(struct sockaddr*)&sock_var,sizeof(sock_var))>=0) {
 
-			break;
+		//listen(serverFileDescriptor,2000); 
+		
+		while(1) {
+		 
+			if(listen(serverFileDescriptor,2000)){
+				for(i = 0; i < 1000 ; i++) {    //can support 1000 clients at a time
+					clientFileDescriptor=accept(serverFileDescriptor,NULL,NULL);
+					pthread_create(&thread_handles[i], NULL, client_operation, (void *)clientFileDescriptor);
+				}
+			}
 		}
 
 		close(serverFileDescriptor);
-	}
-	else{
-		printf("nsocket creation failed");
+	
+	} else {
+		printf("socket creation failed\n");
 	}
 
 	for(i = 0; i < num_str; i++){
@@ -86,14 +87,15 @@ void *client_operation(void *args) {
 
 	int clientFileDescriptor = (int) args;
 
-	char* temp;//[STR_LEN];// = (char *)malloc(STR_LEN * sizeof(char));
+	char* temp;
 	char str_ser[STR_LEN];
 
 	char str_cli[STR_LEN];
-	//perror("Pre read");
-	read(clientFileDescriptor, str_cli, sizeof(str_cli));
-	//printf("%s\n", str_cli);
-
+	int n;
+	n = read(clientFileDescriptor, str_cli, sizeof(str_cli));
+	if (n < 0){
+		printf("\nError Reading from Client");
+	}
 	char* token;
 	token = strtok_r(str_cli, " ", &temp);
 
@@ -101,21 +103,15 @@ void *client_operation(void *args) {
 
 	int r_w = atoi(strtok_r(NULL, " ", &temp));
 
-
 	pthread_mutex_lock(&mutex); 
 
 	if(r_w == 1) {
 		snprintf(str_ser,STR_LEN,"%s%d%s", "String ", pos, " has been modified by a write request");
-		strcpy(theArray[pos+126],str_ser);
+		strcpy(theArray[pos+offset],str_ser);
 	} else {
-		//printf("%d\n", pos);
-
-		strcpy(str_ser, theArray[pos+126]);
-		//printf("%s\n", theArray[pos+126]);
-
+		strcpy(str_ser, theArray[pos+offset]);
 	}	
 
-	printf("\nsending to client:%s\n", str_ser);
 	write(clientFileDescriptor, str_ser, STR_LEN);
 	pthread_mutex_unlock(&mutex);
 
