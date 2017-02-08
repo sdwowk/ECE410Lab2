@@ -36,12 +36,9 @@ int main(int argc, char* argv[]) {
 	/* Fill in the initial values for theArray */
 	for (i = 0; i < num_str; i ++) {
 		theArray[i] = malloc(STR_LEN * sizeof(char *));
-		sprintf(theArray[i], "String %d: the initial value\n", i);
+		sprintf(theArray[i], "String %d: the initial value", i);
 		 
 	}
-
-	printf("%s\n", theArray[325]);
-
 
 	struct sockaddr_in sock_var;
 	int serverFileDescriptor=socket(AF_INET,SOCK_STREAM,0);
@@ -61,16 +58,12 @@ int main(int argc, char* argv[]) {
 		while(1)        //loop infinity
 		{
 			for(i = 0; i < 1000 ; i++) {    //can support 1000 clients at a time
-			
 				clientFileDescriptor=accept(serverFileDescriptor,NULL,NULL);
-				printf("nConnected to client %d\n",clientFileDescriptor);
-				pthread_create(&thread_handles[i], NULL, client_operation, (void *)clientFileDescriptor);
+				printf("Connected to client %d\n",clientFileDescriptor);
+				pthread_create(&thread_handles[i], NULL, client_operation, (void *)clientFileDescriptor);			
 			}
-			perror("Done making threads");
-			for(i = 0; i < 1000; i++){
-				pthread_join(thread_handles[i], NULL);
-			}
-			
+
+			break;
 		}
 
 		close(serverFileDescriptor);
@@ -83,9 +76,9 @@ int main(int argc, char* argv[]) {
 		free(theArray[i]);
 	}
 	free(theArray);
-
 	pthread_mutex_destroy(&mutex);
 	free(thread_handles);
+
 	return 0;
 }
 
@@ -97,10 +90,8 @@ void *client_operation(void *args) {
 	char str_ser[STR_LEN];
 
 	char str_cli[STR_LEN];
-	perror("Pre read");
+	//perror("Pre read");
 	read(clientFileDescriptor, str_cli, sizeof(str_cli));
-	perror("Post read");
-
 	//printf("%s\n", str_cli);
 
 	char* token;
@@ -117,19 +108,18 @@ void *client_operation(void *args) {
 		snprintf(str_ser,STR_LEN,"%s%d%s", "String ", pos, " has been modified by a write request");
 		strcpy(theArray[pos+126],str_ser);
 	} else {
-		printf("%d\n", pos);
+		//printf("%d\n", pos);
 
 		strcpy(str_ser, theArray[pos+126]);
-		printf("%s\n", theArray[pos+126]);
+		//printf("%s\n", theArray[pos+126]);
 
 	}	
 
 	printf("\nsending to client:%s\n", str_ser);
 	write(clientFileDescriptor, str_ser, STR_LEN);
-
+	pthread_mutex_unlock(&mutex);
 
 	close(clientFileDescriptor);
-	pthread_mutex_unlock(&mutex);
 
 	return NULL;
 }

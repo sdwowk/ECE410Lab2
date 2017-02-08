@@ -1,6 +1,6 @@
 
 
-CFLAGS =-lpthread -lm -pthread
+CFLAGS = -lm -pthread
 
 server: server.c 
 	gcc -g -Wall -o server server.c $(CFLAGS)
