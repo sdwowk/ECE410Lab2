@@ -15,6 +15,7 @@ unsigned int *seed;
 int num_str;
 pthread_mutex_t mutex;
 //int clientFileDescriptor;
+int port;
 
 /* Prototyping */
 void *rw_array(void* rank);
@@ -44,6 +45,7 @@ int main(int argc, char* argv[]) {
 	int clientFileDescriptor=socket(AF_INET,SOCK_STREAM,0);
 
 	sock_var.sin_addr.s_addr=inet_addr("127.0.0.1");
+	port = strtol(argv[1],NULL,10);
 	sock_var.sin_port = strtol(argv[1],NULL,10);
 	sock_var.sin_family=AF_INET;
 
@@ -68,7 +70,7 @@ int main(int argc, char* argv[]) {
 		for(thread = 0; thread < thread_count; thread++) {
 			pthread_join(thread_handles[thread], NULL);
 		}
-
+		perror("Out of threads");
 		//time end
 		GET_TIME(end);
 		
@@ -95,21 +97,21 @@ void *rw_array(void* rank){
 	int clientFileDescriptor=socket(AF_INET,SOCK_STREAM,0);
 
 	sock_var.sin_addr.s_addr=inet_addr("127.0.0.1");
-	sock_var.sin_port = 3000;
+	sock_var.sin_port = port;
 	sock_var.sin_family=AF_INET;
 	char str_ser[STR_LEN];
 
 	if(connect(clientFileDescriptor,(struct sockaddr*)&sock_var,sizeof(sock_var))>=0){
 
 
+		// Find a random position in theArray for read or write
+		int pos = rand_r(&seed[my_rank]) % num_str;
+		int randNum = rand_r(&seed[my_rank]) % 100;	// write with 5% probability
 
-	// Find a random position in theArray for read or write
-	int pos = rand_r(&seed[my_rank]) % num_str;
-	int randNum = rand_r(&seed[my_rank]) % 100;	// write with 5% probability
+		char str_cli[STR_LEN];
+		printf("%d\n", rank);
 
-	char str_cli[STR_LEN];
-
-	pthread_mutex_lock(&mutex);
+		//pthread_mutex_lock(&mutex);
 
 	if (randNum >= 95) { // 5% are write operations, others are reads
 		snprintf(str_cli, STR_LEN, "%d%s%d", pos, " ", 1);
@@ -120,9 +122,11 @@ void *rw_array(void* rank){
 		write(clientFileDescriptor, str_cli, sizeof(str_cli));
 		read(clientFileDescriptor, str_ser, STR_LEN);
 	}
-	pthread_mutex_unlock(&mutex);
+	//pthread_mutex_unlock(&mutex);
 
-	printf("%s\n", str_ser);
+	//printf("%s\n", str_ser);
+
+	printf("%d\n", rank);
 	close(clientFileDescriptor);
 	return NULL;
 }else{

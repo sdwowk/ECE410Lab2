@@ -66,11 +66,11 @@ int main(int argc, char* argv[]) {
 				printf("nConnected to client %d\n",clientFileDescriptor);
 				pthread_create(&thread_handles[i], NULL, client_operation, (void *)clientFileDescriptor);
 			}
-
+			perror("Done making threads");
 			for(i = 0; i < 1000; i++){
 				pthread_join(thread_handles[i], NULL);
 			}
-			break;
+			
 		}
 
 		close(serverFileDescriptor);
@@ -101,7 +101,7 @@ void *client_operation(void *args) {
 	read(clientFileDescriptor, str_cli, sizeof(str_cli));
 	perror("Post read");
 
-	printf("%s\n", str_cli);
+	//printf("%s\n", str_cli);
 
 	char* token;
 	token = strtok_r(str_cli, " ", &temp);
@@ -110,14 +110,12 @@ void *client_operation(void *args) {
 
 	int r_w = atoi(strtok_r(NULL, " ", &temp));
 
-	printf("%d\n", pos);
-	printf("%d\n", r_w);
 
 	pthread_mutex_lock(&mutex); 
 
 	if(r_w == 1) {
 		snprintf(str_ser,STR_LEN,"%s%d%s", "String ", pos, " has been modified by a write request");
-		strcpy(theArray[pos],str_ser);
+		strcpy(theArray[pos+126],str_ser);
 	} else {
 		printf("%d\n", pos);
 
@@ -129,8 +127,9 @@ void *client_operation(void *args) {
 	printf("\nsending to client:%s\n", str_ser);
 	write(clientFileDescriptor, str_ser, STR_LEN);
 
-	pthread_mutex_unlock(&mutex);
 
 	close(clientFileDescriptor);
+	pthread_mutex_unlock(&mutex);
+
 	return NULL;
 }
