@@ -66,6 +66,11 @@ int main(int argc, char* argv[]) {
 				printf("nConnected to client %d\n",clientFileDescriptor);
 				pthread_create(&thread_handles[i], NULL, client_operation, (void *)clientFileDescriptor);
 			}
+
+			for(i = 0; i < 1000; i++){
+				pthread_join(thread_handles[i], NULL);
+			}
+			break;
 		}
 
 		close(serverFileDescriptor);
@@ -73,6 +78,11 @@ int main(int argc, char* argv[]) {
 	else{
 		printf("nsocket creation failed");
 	}
+
+	for(i = 0; i < num_str; i++){
+		free(theArray[i]);
+	}
+	free(theArray);
 
 	pthread_mutex_destroy(&mutex);
 	free(thread_handles);
@@ -83,22 +93,22 @@ void *client_operation(void *args) {
 
 	int clientFileDescriptor = (int) args;
 
-	char temp[STR_LEN];
-	char* str_ser = malloc(STR_LEN * sizeof(char));
+	char* temp;//[STR_LEN];// = (char *)malloc(STR_LEN * sizeof(char));
+	char str_ser[STR_LEN];
 
-	char* str_cli[STR_LEN];
+	char str_cli[STR_LEN];
 	perror("Pre read");
 	read(clientFileDescriptor, str_cli, sizeof(str_cli));
 	perror("Post read");
 
 	printf("%s\n", str_cli);
 
-	char* token = malloc(STR_LEN * sizeof(char));
-	token = strtok_r(str_cli, " ", temp);
+	char* token;
+	token = strtok_r(str_cli, " ", &temp);
 
 	int pos = atoi(str_cli);
 
-	int r_w = atoi(strtok_r(NULL, " ", temp));
+	int r_w = atoi(strtok_r(NULL, " ", &temp));
 
 	printf("%d\n", pos);
 	printf("%d\n", r_w);
@@ -106,13 +116,13 @@ void *client_operation(void *args) {
 	pthread_mutex_lock(&mutex); 
 
 	if(r_w == 1) {
-		sprintf(str_ser, "String %d has been modified by a write request", pos);
-		sprintf(theArray[pos], "String %d has been modified by a write request", pos);
+		snprintf(str_ser,STR_LEN,"%s%d%s", "String ", pos, " has been modified by a write request");
+		strcpy(theArray[pos],str_ser);
 	} else {
-	printf("%d\n", pos);
+		printf("%d\n", pos);
 
-		str_ser = theArray[pos];
-	printf("%s\n", theArray[pos]);
+		strcpy(str_ser, theArray[pos+126]);
+		printf("%s\n", theArray[pos+126]);
 
 	}	
 
@@ -122,4 +132,5 @@ void *client_operation(void *args) {
 	pthread_mutex_unlock(&mutex);
 
 	close(clientFileDescriptor);
+	return NULL;
 }
