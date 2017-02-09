@@ -26,7 +26,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	num_str = atoi(argv[2]);
-
+	port = atoi(argv[1]);
 	/* Initialize RNG */
 	int i;
 	seed = malloc(thread_count*sizeof(int));
@@ -36,44 +36,20 @@ int main(int argc, char* argv[]) {
 
 	pthread_t* thread_handles;
 	thread_handles =  malloc(thread_count*sizeof(pthread_t));
-
-	struct sockaddr_in sock_var;
-	int clientFileDescriptor=socket(AF_INET,SOCK_STREAM,0);
-
-	sock_var.sin_addr.s_addr=inet_addr("127.0.0.1");
-	port = strtol(argv[1],NULL,10);
-	sock_var.sin_port = strtol(argv[1],NULL,10);
-	sock_var.sin_family=AF_INET;
-
-	if(connect(clientFileDescriptor,(struct sockaddr*)&sock_var,sizeof(sock_var))>=0) {
 		
-		double start, end, total;
-
-		//time start
-		GET_TIME(start);
-		
-		//create threads
-		int thread;
-		for(thread = 0; thread < thread_count; thread++){
-			int rc = pthread_create(&thread_handles[thread], NULL, rw_array, (void*)thread);
-
-			if(rc != 0){
-				perror("Error creating threads");
-			}
+	//create threads
+	int thread;
+	for(thread = 0; thread < thread_count; thread++){
+			
+		int rc = pthread_create(&thread_handles[thread], NULL, rw_array, (void*)thread);
+		if(rc != 0){
+			perror("Error creating threads");
 		}
-
-		//time end
-		GET_TIME(end);
-		
-		//calculate total elapsed time
-		total = end - start;
-
-		printf("Total time: %e\n", total);
-
-	} else {
-		printf("socket creation failed");
 	}
- 
+
+	for (thread = 0; thread< thread_count; thread++){
+		pthread_join(thread_handles[thread], NULL);
+	}
 	free(thread_handles);
 	free(seed);
 	return 0;
@@ -82,13 +58,13 @@ int main(int argc, char* argv[]) {
 void *rw_array(void* rank){
 
 	long my_rank = (long) rank;
+
 	struct sockaddr_in sock_var;
 	int clientFileDescriptor=socket(AF_INET,SOCK_STREAM,0);
 
 	sock_var.sin_addr.s_addr=inet_addr("127.0.0.1");
 	sock_var.sin_port = port;
 	sock_var.sin_family=AF_INET;
-	char str_ser[STR_LEN];
 
 	if(connect(clientFileDescriptor,(struct sockaddr*)&sock_var,sizeof(sock_var))>=0){
 
@@ -97,22 +73,25 @@ void *rw_array(void* rank){
 		int randNum = rand_r(&seed[my_rank]) % 100;	// write with 5% probability
 
 		char str_cli[STR_LEN];
+		char str_ser[STR_LEN];
 
 		if (randNum >= 95) { // 5% are write operations, others are reads
 			snprintf(str_cli, STR_LEN, "%d%s%d", pos, " ", 1);
 			write(clientFileDescriptor, str_cli,STR_LEN);
-			read(clientFileDescriptor, str_ser, STR_LEN);
+			//read(clientFileDescriptor, str_ser, STR_LEN);
 		} else {
 			snprintf(str_cli, STR_LEN, "%d%s%d", pos, " ", 0);
 			write(clientFileDescriptor, str_cli, sizeof(str_cli));
-			read(clientFileDescriptor, str_ser, STR_LEN);
+			//read(clientFileDescriptor, str_ser, STR_LEN);
 		}
-
-		printf("%s\n", str_ser);
+		
+		read(clientFileDescriptor, str_ser, STR_LEN);
+		//printf("%s\n", str_ser);
 
 		close(clientFileDescriptor);
+
 		return NULL;
-	}else{
+	} else {
 		return NULL;
 	}
 }

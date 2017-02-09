@@ -7,14 +7,15 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <string.h>
+#include "timer.h"
 
 #define STR_LEN 1000
 #define thread_count 1000
-#define offset 126
 
 pthread_mutex_t mutex;
 char** theArray;
 int num_str;
+double total;
 
 /* Prototyping */
 void *client_operation(void *args);
@@ -28,15 +29,15 @@ int main(int argc, char* argv[]) {
 
 	/* Initiliazing theArray */
 	int num_str = atoi(argv[2]);
-	theArray = malloc(num_str*sizeof(char));
+	theArray = (char**) malloc(num_str*sizeof(char*));
 	int i;
 
-	char** theArray = malloc(num_str * sizeof(char *));
+	/* Timing variables */
 	pthread_mutex_init(&mutex, NULL);	
 
 	/* Fill in the initial values for theArray */
 	for (i = 0; i < num_str; i ++) {
-		theArray[i] = malloc(STR_LEN * sizeof(char *));
+		theArray[i] = malloc(STR_LEN * sizeof(char));
 		sprintf(theArray[i], "String %d: the initial value", i);
 		 
 	}
@@ -55,16 +56,25 @@ int main(int argc, char* argv[]) {
 	
 	if(bind(serverFileDescriptor,(struct sockaddr*)&sock_var,sizeof(sock_var))>=0) {
 
-		//listen(serverFileDescriptor,2000); 
+		listen(serverFileDescriptor,2000); 
 		
 		while(1) {
-		 
-			if(listen(serverFileDescriptor,2000)){
-				for(i = 0; i < 1000 ; i++) {    //can support 1000 clients at a time
-					clientFileDescriptor=accept(serverFileDescriptor,NULL,NULL);
-					pthread_create(&thread_handles[i], NULL, client_operation, (void *)clientFileDescriptor);
-				}
+			//time start
+			total = 0;
+			for(i = 0; i < thread_count ; i++) {    //can support 1000 clients at a time
+
+				clientFileDescriptor=accept(serverFileDescriptor,NULL,NULL);
+				pthread_create(&thread_handles[i], NULL, client_operation, (void *)clientFileDescriptor);
+
 			}
+
+		printf("socket has been created\n");
+
+			for(i = 0; i < thread_count; i++) {
+				pthread_join(thread_handles[i], NULL);
+			}
+
+			printf("Total Time: %f\n", total);
 		}
 
 		close(serverFileDescriptor);
@@ -84,6 +94,7 @@ int main(int argc, char* argv[]) {
 }
 
 void *client_operation(void *args) {
+	double start, end;
 
 	int clientFileDescriptor = (int) args;
 
@@ -92,10 +103,16 @@ void *client_operation(void *args) {
 
 	char str_cli[STR_LEN];
 	int n;
+	
+	GET_TIME(start);
+	
+	pthread_mutex_lock(&mutex); 
+
 	n = read(clientFileDescriptor, str_cli, sizeof(str_cli));
 	if (n < 0){
 		printf("\nError Reading from Client");
 	}
+	
 	char* token;
 	token = strtok_r(str_cli, " ", &temp);
 
@@ -103,17 +120,19 @@ void *client_operation(void *args) {
 
 	int r_w = atoi(strtok_r(NULL, " ", &temp));
 
-	pthread_mutex_lock(&mutex); 
-
 	if(r_w == 1) {
 		snprintf(str_ser,STR_LEN,"%s%d%s", "String ", pos, " has been modified by a write request");
-		strcpy(theArray[pos+offset],str_ser);
+		strcpy(theArray[pos],str_ser);
 	} else {
-		strcpy(str_ser, theArray[pos+offset]);
+		strcpy(str_ser, theArray[pos]);
 	}	
 
-	write(clientFileDescriptor, str_ser, STR_LEN);
 	pthread_mutex_unlock(&mutex);
+
+	GET_TIME(end);
+	total += end - start;
+
+	write(clientFileDescriptor, str_ser, STR_LEN);
 
 	close(clientFileDescriptor);
 
