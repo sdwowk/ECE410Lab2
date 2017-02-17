@@ -1,4 +1,6 @@
-To compile the server.c use:
+To compile the server with a single mutex use:
 	make server
 To compile the client.c use:
 	make client
+To compile the server with read/write locks use:
+	make server_multi

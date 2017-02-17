@@ -27,6 +27,7 @@ int main(int argc, char* argv[]) {
 		exit(0);
 	}
 
+ 	int count = 0;
 	/* Initiliazing theArray */
 	int num_str = atoi(argv[2]);
 	theArray = (char**) malloc(num_str*sizeof(char*));
@@ -68,13 +69,12 @@ int main(int argc, char* argv[]) {
 
 			}
 
-		printf("socket has been created\n");
-
 			for(i = 0; i < thread_count; i++) {
 				pthread_join(thread_handles[i], NULL);
 			}
 
-			printf("Total Time: %f\n", total);
+			printf("%d, %f\n", count, total);
+			count ++;
 		}
 
 		close(serverFileDescriptor);
